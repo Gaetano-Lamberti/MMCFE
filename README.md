@@ -6,6 +6,7 @@ Companion repository of the textbook
 
 Every script printed or discussed in the book is here, in **Python** and in **MATLAB**.
 The two versions of each script have the same structure and give the same results.
+The only exceptions are `PDE_CaseA_CylindricalTransient.m` and `PDE_Example_CanSterilization_solvepde.m` (Chapter 5), which exist in MATLAB only.
 
 ## Contents
 
