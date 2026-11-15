@@ -1,4 +1,4 @@
-# Mathematical Modeling for Chemical and Food Engineering — companion code
+# Mathematical Modeling for Chemical and Food Engineering — companion repository
 
 Companion repository of the textbook
 
@@ -9,10 +9,15 @@ The two versions of each script have the same structure and give the same result
 
 ## Contents
 
+The repository has two folders:
+
+- `lectures/` – slides of the course lessons (PDF). Lesson *n* corresponds to Chapter *n* of the book.
+- `scripts/` – the scripts, one subfolder per chapter:
+
 | Folder | Book chapter | Scripts |
 |---|---|---|
-| `ch03_algebraic_equations` | 3 – Algebraic Equations | Newton–Raphson and variants; Examples 3.1–3.2 (CSTR) |
-| `ch04_ordinary_differential_equations` | 4 – Ordinary Differential Equations | Examples 1–4; built-in solvers; BVP; DAE; Examples 4.1–4.2 (PFR) |
+| `scripts/ch03_algebraic_equations` | 3 – Algebraic Equations | Newton–Raphson and variants; Examples 3.1–3.2 (CSTR) |
+| `scripts/ch04_ordinary_differential_equations` | 4 – Ordinary Differential Equations | Examples 1–4; built-in solvers; BVP; DAE; Examples 4.1–4.2 (PFR) |
 
 Further chapters will be added as the book is completed.
 The problems solved in the case histories are stated in Chapter 2 (the guiding example: catalytic
@@ -26,7 +31,7 @@ dehydrogenation of ethylbenzene to styrene).
 
 ```
 pip install -r requirements.txt
-python ch03_algebraic_equations/Example_3_1_CSTR_isothermal.py
+python scripts/ch03_algebraic_equations/Example_3_1_CSTR_isothermal.py
 ```
 
 **MATLAB** (R2016b or later; no toolboxes required): open the `.m` file and press **Run** (F5).
