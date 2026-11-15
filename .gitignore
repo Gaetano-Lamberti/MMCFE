@@ -7,3 +7,9 @@ __pycache__/
 *.asv
 .DS_Store
 Thumbs.db
+desktop.ini
+# data files written by the scripts at run time
+*.npz
+*.npy
+Scripts/ch05_Partial_Differential_Equations/ex*.json
+Scripts/ch06_Parameter_Estimation/Labs_4-8/*/BatchReactor_PseudoData.csv
