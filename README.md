@@ -11,13 +11,13 @@ The two versions of each script have the same structure and give the same result
 
 The repository has two folders:
 
-- `lectures/` – slides of the course lessons (PDF). Lesson *n* corresponds to Chapter *n* of the book.
-- `scripts/` – the scripts, one subfolder per chapter:
+- `Lectures/` – slides of the course lessons (PDF). Lesson *n* corresponds to Chapter *n* of the book.
+- `Scripts/` – the scripts, one subfolder per chapter:
 
 | Folder | Book chapter | Scripts |
 |---|---|---|
-| `scripts/ch03_algebraic_equations` | 3 – Algebraic Equations | Newton–Raphson and variants; Examples 3.1–3.2 (CSTR) |
-| `scripts/ch04_ordinary_differential_equations` | 4 – Ordinary Differential Equations | Examples 1–4; built-in solvers; BVP; DAE; Examples 4.1–4.2 (PFR) |
+| `Scripts/ch03_Algebraic_Equations` | 3 – Algebraic Equations | Newton–Raphson and variants; Examples 3.1–3.2 (CSTR) |
+| `Scripts/ch04_Ordinary_Differential_Equations` | 4 – Ordinary Differential Equations | Examples 1–4; built-in solvers; BVP; DAE; Examples 4.1–4.2 (PFR) |
 
 Further chapters will be added as the book is completed.
 The problems solved in the case histories are stated in Chapter 2 (the guiding example: catalytic
@@ -31,7 +31,7 @@ dehydrogenation of ethylbenzene to styrene).
 
 ```
 pip install -r requirements.txt
-python scripts/ch03_algebraic_equations/Example_3_1_CSTR_isothermal.py
+python Scripts/ch03_Algebraic_Equations/Example_3_1_CSTR_isothermal.py
 ```
 
 **MATLAB** (R2016b or later; no toolboxes required): open the `.m` file and press **Run** (F5).
