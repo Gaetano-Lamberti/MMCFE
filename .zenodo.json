@@ -1,0 +1,22 @@
+{
+  "title": "Mathematical Modeling for Chemical and Food Engineering - companion code",
+  "upload_type": "software",
+  "description": "Python and MATLAB scripts accompanying the textbook <i>Mathematical Modeling for Chemical and Food Engineering</i> by G. Lamberti: numerical solution of algebraic, ordinary and partial differential equations, parameter estimation, optimization, design of experiments, response surfaces and machine learning, with case histories from chemical and food process engineering.",
+  "creators": [
+    {
+      "name": "Lamberti, Gaetano",
+      "affiliation": "University of Salerno, Department of Industrial Engineering",
+      "orcid": "0000-0003-1689-6887"
+    }
+  ],
+  "license": "MIT",
+  "access_right": "open",
+  "keywords": [
+    "mathematical modeling",
+    "numerical methods",
+    "chemical engineering",
+    "food engineering",
+    "Python",
+    "MATLAB"
+  ]
+}

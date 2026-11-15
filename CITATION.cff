@@ -1,0 +1,27 @@
+cff-version: 1.2.0
+message: "If you use this code, please cite the book and this repository."
+title: "Mathematical Modeling for Chemical and Food Engineering - companion code"
+type: software
+authors:
+  - family-names: Lamberti
+    given-names: Gaetano
+    orcid: "https://orcid.org/0000-0003-1689-6887"
+    affiliation: "University of Salerno, Department of Industrial Engineering"
+license: MIT
+repository-code: "https://github.com/Gaetano-Lamberti/MMCFE"
+keywords:
+  - mathematical modeling
+  - numerical methods
+  - chemical engineering
+  - food engineering
+  - Python
+  - MATLAB
+preferred-citation:
+  type: book
+  title: "Mathematical Modeling for Chemical and Food Engineering"
+  authors:
+    - family-names: Lamberti
+      given-names: Gaetano
+      orcid: "https://orcid.org/0000-0003-1689-6887"
+  edition: "1st"
+  year: 2026

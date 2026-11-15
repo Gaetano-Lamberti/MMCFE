@@ -1,0 +1,9 @@
+# figures and outputs produced by running the scripts
+*.png
+!docs/**/*.png
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+*.asv
+.DS_Store
+Thumbs.db
