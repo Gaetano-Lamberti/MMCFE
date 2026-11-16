@@ -21,6 +21,7 @@ The repository has two folders:
 | `Scripts/ch04_Ordinary_Differential_Equations` | 4 – Ordinary Differential Equations | Examples 1–4; built-in solvers; BVP; DAE; Examples 4.1–4.2 (PFR) |
 | `Scripts/ch05_Partial_Differential_Equations` | 5 – Partial Differential Equations | Cases A–C; can sterilization; slab drying; laminar tubular reactor |
 | `Scripts/ch06_Parameter_Estimation` | 6 – Parameter Estimation | Thermistor, thin-layer drying, Herschel–Bulkley; batch-reactor labs (data generation, fitting, Arrhenius, confidence intervals) |
+| `Scripts/ch07_Constrained_Optimization` | 7 – Constrained Optimization | Tableau simplex method; bakery product mix, least-cost burger, thermal process design |
 
 Further chapters will be added as the book is completed.
 The problems solved in the case histories are stated in Chapter 2 (the guiding example: catalytic
