@@ -34,11 +34,22 @@ dehydrogenation of ethylbenzene to styrene).
 **Python** (3.9 or later):
 
 ```
-pip install -r requirements.txt
-python Scripts/ch03_Algebraic_Equations/Example_3_1_CSTR_isothermal.py
+python -m pip install -r requirements.txt
+cd Scripts/ch03_Algebraic_Equations
+python Example_2_1_CSTR_isothermal.py
 ```
 
-**MATLAB** (R2016b or later): open the `.m` file and press **Run** (F5). Most scripts need no toolbox; the exceptions are `PDE_CaseB_Laplace2D.m` and `PDE_Example_CanSterilization_solvepde.m` (Partial Differential Equation Toolbox) and `Lab5_BatchFitting_LM_k1k2.m`, `Lab7_GlobalFit_4Params.m` (Optimization Toolbox).
+Run each script from its own folder: the scripts write their figures and data files in the current folder.
+
+**MATLAB** (R2016b or later; `Solving_AEs.m` needs R2020a, because it saves its figures with `exportgraphics`): open the `.m` file and press **Run** (F5). Most scripts need no toolbox. The exceptions are:
+
+| Script (chapter) | Toolbox | Use |
+|---|---|---|
+| `PDE_CaseB_Laplace2D.m`, `PDE_Example_CanSterilization_solvepde.m` (5) | Partial Differential Equation | finite-element solution (`createpde`, `solvepde`), required |
+| `L7_Examples.m` (7) | Optimization | `linprog` and `fmincon`, required |
+| `L7_Simplex_Tableau.m` (7) | Optimization | `linprog`, final check of the tableau results |
+| `Lab5_BatchFitting_LM_k1k2.m`, `Lab7_GlobalFit_4Params.m` (6) | Optimization | `lsqnonlin`, optional cross-check (skipped if the toolbox is missing) |
+| `Lab8_ConfidenceIntervals.m` (6) | Statistics and Machine Learning | `tinv` and `finv`, optional cross-check (skipped if the toolbox is missing) |
 
 ## Errata and questions
 
