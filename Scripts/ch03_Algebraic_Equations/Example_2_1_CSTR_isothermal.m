@@ -10,29 +10,29 @@
 %       R1:  EB -> ST + H2        r1 = k1*C_A
 %       R2:  EB -> BZ + C2H4      r2 = k2*C_A
 %   Both reactions are irreversible and first order in A.
-%   X_A = (F_A0 - F_A)/F_A0 is the conversion of A, so F_A = F_A0*(1 - X_A).
-%   Q = Q0*(1 + epsA*X_A) is the outlet volumetric flow (the gas expands,
+%   X_A = (nA0 - nA)/nA0 is the conversion of A, so nA = nA0*(1 - X_A).
+%   Vdot = Vdot0*(1 + epsA*X_A) is the outlet volumetric flow (the gas expands,
 %   because each mole of A converted gives two moles of products), so
-%       C_A = F_A/Q = (F_A0/Q0) * (1 - X_A)/(1 + epsA*X_A)
+%       C_A = nA/Vdot = (nA0/Vdot0) * (1 - X_A)/(1 + epsA*X_A)
 %
 % PROBLEM (2.1): a single, nonlinear algebraic equation (AE)
 %   Mass balance on A at steady state and constant T:
-%       0 = F_A0 - F_A - (k1 + k2)*C_A*V
-%   Substituting C_A and dividing by F_A0:
-%       f(X_A) = X_A - N_Da * (1 - X_A)/(1 + epsA*X_A) = 0
-%   with the Damkohler number  N_Da = (k1 + k2)*V/Q0  (dimensionless).
-%   N_Da compares the reaction rate with the flow rate: N_Da >> 1 means
-%   high conversion, N_Da << 1 low conversion.
+%       0 = nA0 - nA - (k1 + k2)*C_A*V
+%   Substituting C_A and dividing by nA0:
+%       f(X_A) = X_A - Da * (1 - X_A)/(1 + epsA*X_A) = 0
+%   with the Damkohler number  Da = (k1 + k2)*V/Vdot0  (dimensionless).
+%   Da compares the reaction rate with the flow rate: Da >> 1 means
+%   high conversion, Da << 1 low conversion.
 %   The volumetric expansion (epsA ~= 0) is what makes f NONLINEAR in X_A,
 %   even though the kinetics are first order.
 %
 % WHAT THIS SCRIPT DOES
-%   1) Computes k1, k2, Q0 and N_Da at the operating point.
+%   1) Computes k1, k2, Vdot0 and Da at the operating point.
 %   2) Solves f(X_A) = 0 by scalar Newton-Raphson, printing every iterate
 %      to show QUADRATIC convergence.
 %   3) Checks the result against the ANALYTICAL solution (slide 12, Note):
 %      f = 0 is equivalent to the quadratic
-%          epsA*X_A^2 + (1 + N_Da)*X_A - N_Da = 0
+%          epsA*X_A^2 + (1 + Da)*X_A - Da = 0
 %   4) Checks robustness: a starting guess farther away converges to the
 %      same root.
 %   5) Computes the selectivity to styrene and plots f(X_A).
@@ -44,7 +44,7 @@
 %
 % UNITS
 %   Rate constants in 1/s, volume in m^3, volumetric flow in m^3/s: then
-%   N_Da = (k1 + k2)*V/Q0 is dimensionless. Molar flows in kmol/s (the feed
+%   Da = (k1 + k2)*V/Vdot0 is dimensionless. Molar flows in kmol/s (the feed
 %   flows of Sec. 1.6 are given in kmol/h and must be divided by 3600).
 
 clear; clc; close all;
@@ -62,34 +62,34 @@ Ea2  = 207.99e3;       % activation energy, R2                       [kJ/kmol]
 
 %% --- Operating conditions (Sec. 1.6) ---
 T     = 900;           % reactor temperature, FIXED (isothermal)     [K]
-P     = 1e5;           % pressure (isobaric reactor)                 [Pa]
-F_A0  = 1/3600;        % inlet molar flow of A (EB),  1 kmol/h       [kmol/s]
-F_W0  = 9/3600;        % inlet molar flow of steam,   9 kmol/h       [kmol/s]
-F_tot0 = F_A0 + F_W0;  % total inlet molar flow                      [kmol/s]
+p     = 1e5;           % pressure (isobaric reactor)                 [Pa]
+nA0  = 1/3600;        % inlet molar flow of A (EB),  1 kmol/h       [kmol/s]
+nW0  = 9/3600;        % inlet molar flow of steam,   9 kmol/h       [kmol/s]
+n0 = nA0 + nW0;  % total inlet molar flow                      [kmol/s]
 V     = 0.250;         % reactor volume                              [m^3]
 
 % Expansion factor epsA = y_A0 * delta_nu.
 % Each reaction turns 1 mole of A into 2 moles of products, so
 % delta_nu = +1 per mole of A converted; with y_A0 = 0.10 -> epsA = 0.10.
 % The steam is inert: it dilutes the feed and damps the expansion.
-y_A0 = F_A0/F_tot0;    % mole fraction of A in the feed              [-]
+y_A0 = nA0/n0;    % mole fraction of A in the feed              [-]
 epsA = y_A0*1;         % expansion factor                            [-]
 
-% Inlet volumetric flow from the ideal-gas law, Q0 = F_tot0*R*T/P.
+% Inlet volumetric flow from the ideal-gas law, Vdot0 = n0*R*T/p.
 % The factor 1e3 converts kmol -> mol, because with R in J/(mol K) and
-% P in Pa, R*T/P is the molar volume in m^3/mol.
-Q0 = F_tot0*1e3*R*T/P; % inlet volumetric flow (0.208 m^3/s)         [m^3/s]
+% p in Pa, R*T/p is the molar volume in m^3/mol.
+Vdot0 = n0*1e3*R*T/p; % inlet volumetric flow (0.208 m^3/s)         [m^3/s]
 
 %% --- Rate constants and Damkohler number at the fixed temperature ---
-% Because T is constant, k1, k2 and N_Da are plain NUMBERS here
+% Because T is constant, k1, k2 and Da are plain NUMBERS here
 % (compare with Example 2.2, where they become functions of T).
 k1   = k0_1*exp(-Ea1/(R*T));   % [1/s]  (0.7705 1/s at 900 K)
 k2   = k0_2*exp(-Ea2/(R*T));   % [1/s]  (0.0764 1/s at 900 K)
-N_Da = (k1 + k2)*V/Q0;         % [-]    (1.0187)
+Da = (k1 + k2)*V/Vdot0;         % [-]    (1.0187)
 
 fprintf('Isothermal CSTR, T = %.0f K, V = %.3f m^3\n', T, V);
 fprintf('  k1 = %.4f 1/s,  k2 = %.4f 1/s\n', k1, k2);
-fprintf('  Q0 = %.5f m^3/s,  epsA = %.2f,  N_Da = %.4f\n\n', Q0, epsA, N_Da);
+fprintf('  Vdot0 = %.5f m^3/s,  epsA = %.2f,  Da = %.4f\n\n', Vdot0, epsA, Da);
 
 %% --- Numerical settings ---
 tol     = 1e-12;       % tolerance on |f(X_A)| (stopping criterion)
@@ -99,18 +99,18 @@ X_A0    = 0.5;         % initial guess for the conversion
 %% ========================================================================
 %  2) MODEL: the residual f(X_A) and its derivative
 %  ========================================================================
-% f(X_A) = X_A - N_Da*(1 - X_A)/(1 + epsA*X_A)            (equation 2.1)
+% f(X_A) = X_A - Da*(1 - X_A)/(1 + epsA*X_A)            (equation 2.1)
 % At the solution f = 0. Element-wise operators (./ .*) allow evaluating
 % f on a vector of X_A values (used for the plot).
-f = @(X_A) X_A - N_Da*(1 - X_A)./(1 + epsA*X_A);
+f = @(X_A) X_A - Da*(1 - X_A)./(1 + epsA*X_A);
 
 % Derivative f'(X_A), obtained by hand with the quotient rule:
 %   d/dX [ (1 - X)/(1 + epsA*X) ] = -(1 + epsA)/(1 + epsA*X)^2
 % hence
-%   f'(X_A) = 1 + N_Da*(1 + epsA)/(1 + epsA*X_A)^2
+%   f'(X_A) = 1 + Da*(1 + epsA)/(1 + epsA*X_A)^2
 % Note that f'(X_A) > 0 on the whole physical domain [0, 1): f is strictly
 % increasing, so the root is UNIQUE and Newton is well conditioned.
-df = @(X_A) 1 + N_Da*(1 + epsA)./(1 + epsA*X_A).^2;
+df = @(X_A) 1 + Da*(1 + epsA)./(1 + epsA*X_A).^2;
 
 %% ========================================================================
 %  3) NUMERICAL SOLUTION: scalar Newton-Raphson
@@ -133,11 +133,11 @@ fprintf('Solution: X_A = %.4f (%.2f%%)\n\n', X_A, 100*X_A);
 %  4) CHECK 1: analytical solution (slide 12, Note)
 %  ========================================================================
 % Multiplying f(X_A) = 0 by (1 + epsA*X_A) gives the quadratic
-%   epsA*X_A^2 + (1 + N_Da)*X_A - N_Da = 0
+%   epsA*X_A^2 + (1 + Da)*X_A - Da = 0
 % whose physically meaningful root (0 <= X_A < 1) is the one with "+":
-%   X_A = [ -(1 + N_Da) + sqrt((1 + N_Da)^2 + 4*epsA*N_Da) ] / (2*epsA)
+%   X_A = [ -(1 + Da) + sqrt((1 + Da)^2 + 4*epsA*Da) ] / (2*epsA)
 % (the other root is negative, hence unphysical).
-X_exact = (-(1 + N_Da) + sqrt((1 + N_Da)^2 + 4*epsA*N_Da))/(2*epsA);
+X_exact = (-(1 + Da) + sqrt((1 + Da)^2 + 4*epsA*Da))/(2*epsA);
 fprintf('Check 1 - analytical root of the quadratic: X_A = %.12f\n', X_exact);
 fprintf('          |X_A(Newton) - X_A(analytical)| = %.1e\n\n', abs(X_A - X_exact));
 
@@ -166,7 +166,7 @@ fprintf('Solution: X_A = %.4f (%.2f%%)\n\n', X_A_far, 100*X_A_far);
 S_ST = k1/(k1 + k2);
 fprintf('Selectivity to styrene k1/(k1+k2) = %.4f (%.1f%%)\n', S_ST, 100*S_ST);
 fprintf('Outlet flows [kmol/h]: EB %.4f, ST %.4f, BZ %.4f\n', ...
-        3600*F_A0*(1 - X_A), 3600*S_ST*F_A0*X_A, 3600*(1 - S_ST)*F_A0*X_A);
+        3600*nA0*(1 - X_A), 3600*S_ST*nA0*X_A, 3600*(1 - S_ST)*nA0*X_A);
 
 %% ========================================================================
 %  7) PLOT: the residual f(X_A) and the Newton iterates
@@ -177,7 +177,7 @@ plot(Xplot, f(Xplot), '-', 'LineWidth', 1.2); hold on
 plot(hist, f(hist), 'o', 'MarkerSize', 6);
 plot([0 1], [0 0], 'k:');              % zero line: the root is where f crosses it
 xlabel('Conversion of EB, X_A [-]'); ylabel('Residual f(X_A) [-]');
-title(sprintf('Isothermal CSTR, T = %.0f K, N_{Da} = %.4f', T, N_Da));
+title(sprintf('Isothermal CSTR, T = %.0f K, Da = %.4f', T, Da));
 legend('f(X_A)', 'Newton iterates', 'Zero line', 'Location', 'northwest');
 grid on
 
