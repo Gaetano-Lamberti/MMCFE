@@ -10,14 +10,14 @@
 %       (1)  A -> B + H2          rate constant k1
 %       (2)  A -> C + C2H4        rate constant k2
 %   Both reactions are irreversible and first order in A.
-%   X_A = (F_A0 - F_A)/F_A0 is the conversion of A.
+%   X_A = (nA0 - nA)/nA0 is the conversion of A.
 %
 % PROBLEM (3.1): a single, nonlinear ODE (initial value problem)
-%       dX_A/dV = (k1 + k2) * (1 - X_A) / ( Q0*(1 + epsA*X_A) )
+%       dX_A/dV = (k1 + k2) * (1 - X_A) / ( Vdot0*(1 + epsA*X_A) )
 %       X_A = 0  @  V = 0
-%   It comes from the mass balance on A, dF_A/dV = -(k1 + k2)*C_A (A),
-%   with C_A = F_A/Q(X_A), Q(X_A) = Q0*(1 + epsA*X_A), and
-%   F_A = F_A0*(1 - X_A)  (so dF_A = -F_A0*dX_A).
+%   It comes from the mass balance on A, dnA/dV = -(k1 + k2)*C_A (A),
+%   with C_A = nA/Vdot(X_A), Vdot(X_A) = Vdot0*(1 + epsA*X_A), and
+%   nA = nA0*(1 - X_A)  (so dnA = -nA0*dX_A).
 %   The temperature is FIXED (T = 900 K), so k1 and k2 are constants and
 %   the volumetric flow changes only with composition (no T/T0 factor).
 %
@@ -25,12 +25,12 @@
 %   1) Solves (3.1) numerically with the classical 4th-order Runge-Kutta
 %      method (RK4), fixed step, from V = 0 to V = 0.30 m^3.
 %   2) Checks it against the ANALYTICAL solution (slide 17, "Note"):
-%          -epsA*X_A - (1 + epsA)*ln(1 - X_A) = (k1 + k2)/Q0 * V
+%          -epsA*X_A - (1 + epsA)*ln(1 - X_A) = (k1 + k2)/Vdot0 * V
 %      which is implicit in X_A and is solved at each V by scalar
 %      Newton-Raphson (the same machinery used for the CSTR in Sec. 2.1).
-%   3) Recovers the styrene flow F_B ALGEBRAICALLY (slide 18): from the
-%      ratio (B)/(A), dF_B/dF_A = -k1/(k1 + k2) is constant, hence
-%          F_B = k1/(k1 + k2) * F_A0 * X_A
+%   3) Recovers the styrene flow nB ALGEBRAICALLY (slide 18): from the
+%      ratio (B)/(A), dnB/dnA = -k1/(k1 + k2) is constant, hence
+%          nB = k1/(k1 + k2) * nA0 * X_A
 %      so only ONE ODE needs to be integrated.
 %   4) Plots the profiles.
 %
@@ -59,22 +59,22 @@ Ea2  = 207.99e3;       % activation energy, reaction 2               [kJ/kmol]
 
 %% --- Operating conditions (Sec. 1.6) ---
 T     = 900;           % reactor temperature, FIXED (isothermal)     [K]
-P     = 1e5;           % pressure (isobaric reactor)                 [Pa]
-F_A0  = 1/3600;        % inlet molar flow of A (EB),  1 kmol/h       [kmol/s]
-F_W0  = 9/3600;        % inlet molar flow of steam,   9 kmol/h       [kmol/s]
-F_tot0 = F_A0 + F_W0;  % total inlet molar flow                      [kmol/s]
+p     = 1e5;           % pressure (isobaric reactor)                 [Pa]
+nA0  = 1/3600;        % inlet molar flow of A (EB),  1 kmol/h       [kmol/s]
+nW0  = 9/3600;        % inlet molar flow of steam,   9 kmol/h       [kmol/s]
+n0 = nA0 + nW0;  % total inlet molar flow                      [kmol/s]
 
 % Expansion factor epsA = y_A0 * delta_nu.
 % Each reaction turns 1 mole of A into 2 moles of products, so
 % delta_nu = +1 per mole of A converted; with y_A0 = 0.10 -> epsA = 0.10.
 % The steam is inert: it dilutes the feed and damps the expansion.
-y_A0 = F_A0/F_tot0;    % mole fraction of A in the feed              [-]
+y_A0 = nA0/n0;    % mole fraction of A in the feed              [-]
 epsA = y_A0*1;         % expansion factor                            [-]
 
-% Inlet volumetric flow from the ideal-gas law, Q0 = F_tot0*R*T/P.
+% Inlet volumetric flow from the ideal-gas law, Vdot0 = n0*R*T/p.
 % The factor 1e3 converts kmol -> mol, because with R in J/(mol K) and
-% P in Pa, R*T/P is the molar volume in m^3/mol.
-Q0 = F_tot0*1e3*R*T/P; % inlet volumetric flow                       [m^3/s]
+% p in Pa, R*T/p is the molar volume in m^3/mol.
+Vdot0 = n0*1e3*R*T/p; % inlet volumetric flow                       [m^3/s]
 
 %% --- Rate constants at the fixed temperature ---
 % Because T is constant, k1 and k2 are plain NUMBERS here, not functions
@@ -89,17 +89,17 @@ X_A0  = 0;             % initial condition: X_A = 0 @ V = 0          [-]
 
 fprintf('Isothermal PFR, T = %.0f K\n', T);
 fprintf('  k1 = %.4f 1/s,  k2 = %.4f 1/s,  k1+k2 = %.4f 1/s\n', k1, k2, k1+k2);
-fprintf('  Q0 = %.5f m^3/s,  epsA = %.2f\n\n', Q0, epsA);
+fprintf('  Vdot0 = %.5f m^3/s,  epsA = %.2f\n\n', Vdot0, epsA);
 
 %% ========================================================================
 %  2) MODEL: right-hand side of the ODE (3.1)
 %  ========================================================================
-% f(V, X_A) = (k1 + k2)*(1 - X_A)/(Q0*(1 + epsA*X_A))
+% f(V, X_A) = (k1 + k2)*(1 - X_A)/(Vdot0*(1 + epsA*X_A))
 % V does not appear explicitly (the ODE is AUTONOMOUS), but it is kept as
 % the first argument, as is standard for ODE solvers (same signature as
 % MATLAB's ode45: f(t, y)). Element-wise operators (./ .*) allow the
 % function to be evaluated on vectors as well.
-f = @(V, X_A) (k1 + k2)*(1 - X_A)./(Q0*(1 + epsA*X_A));
+f = @(V, X_A) (k1 + k2)*(1 - X_A)./(Vdot0*(1 + epsA*X_A));
 
 %% ========================================================================
 %  3) NUMERICAL SOLUTION: classical RK4 with fixed step
@@ -117,13 +117,13 @@ fprintf('RK4 (h = %.3f m^3, %d steps): X_A at V = %.2f m^3 is %.4f (%.2f%%)\n', 
 % The ODE is SEPARABLE. With the partial-fraction split
 %       (1 + epsA*X_A)/(1 - X_A) = -epsA + (1 + epsA)/(1 - X_A)
 % it integrates in closed form (X_A = 0 at V = 0) to
-%       -epsA*X_A - (1 + epsA)*ln(1 - X_A) = (k1 + k2)/Q0 * V
+%       -epsA*X_A - (1 + epsA)*ln(1 - X_A) = (k1 + k2)/Vdot0 * V
 % This relation is IMPLICIT in X_A: for each V we solve g(X_A) = 0 with
-%       g(X_A)  = -epsA*X_A - (1 + epsA)*ln(1 - X_A) - (k1 + k2)/Q0*V
+%       g(X_A)  = -epsA*X_A - (1 + epsA)*ln(1 - X_A) - (k1 + k2)/Vdot0*V
 %       g'(X_A) = -epsA + (1 + epsA)/(1 - X_A)   (> 0 on [0,1): unique root)
 % by scalar Newton-Raphson. This reference uses NO ODE solver, so it
 % cannot share any blind spot with RK4.
-g  = @(X_A, V) -epsA*X_A - (1 + epsA)*log(1 - X_A) - (k1 + k2)/Q0*V;
+g  = @(X_A, V) -epsA*X_A - (1 + epsA)*log(1 - X_A) - (k1 + k2)/Vdot0*V;
 dg = @(X_A)    -epsA + (1 + epsA)./(1 - X_A);
 
 X_exact = zeros(size(Vgrid));
@@ -139,21 +139,21 @@ fprintf('  (RK4 global error is O(h^4): halving h reduces it by about 16)\n\n');
 %% ========================================================================
 %  5) STYRENE AND BENZENE: obtained algebraically (slide 18)
 %  ========================================================================
-% Mass balance on B: dF_B/dV = k1*C_A   (B)
-% Ratio (B)/(A): dF_B/dF_A = k1*C_A / ( -(k1 + k2)*C_A ) = -k1/(k1 + k2)
+% Mass balance on B: dnB/dV = k1*C_A   (B)
+% Ratio (B)/(A): dnB/dnA = k1*C_A / ( -(k1 + k2)*C_A ) = -k1/(k1 + k2)
 % C_A cancels, the ratio is CONSTANT (T is fixed), and integrating from
-% the inlet (F_A = F_A0, F_B = 0):
-%       F_B = k1/(k1 + k2) * (F_A0 - F_A) = k1/(k1 + k2) * F_A0 * X_A
-% The same argument for C gives F_C = k2/(k1 + k2) * F_A0 * X_A.
+% the inlet (nA = nA0, nB = 0):
+%       nB = k1/(k1 + k2) * (nA0 - nA) = k1/(k1 + k2) * nA0 * X_A
+% The same argument for C gives nC = k2/(k1 + k2) * nA0 * X_A.
 S_B  = k1/(k1 + k2);              % selectivity to styrene (constant)  [-]
-F_A  = F_A0*(1 - X_rk4);          % EB molar flow profile              [kmol/s]
-F_B  = S_B*F_A0*X_rk4;            % St molar flow profile              [kmol/s]
-F_C  = (1 - S_B)*F_A0*X_rk4;      % Bz molar flow profile              [kmol/s]
+nA  = nA0*(1 - X_rk4);          % EB molar flow profile              [kmol/s]
+nB  = S_B*nA0*X_rk4;            % St molar flow profile              [kmol/s]
+nC  = (1 - S_B)*nA0*X_rk4;      % Bz molar flow profile              [kmol/s]
 
 fprintf('Selectivity to styrene k1/(k1+k2) = %.4f (%.1f%%), constant along V\n', ...
         S_B, 100*S_B);
 fprintf('Outlet flows [kmol/h]: EB %.4f, St %.4f, Bz %.4f\n', ...
-        3600*F_A(end), 3600*F_B(end), 3600*F_C(end));
+        3600*nA(end), 3600*nB(end), 3600*nC(end));
 
 %% ========================================================================
 %  6) PLOTS
@@ -169,12 +169,12 @@ legend('RK4', 'Analytical', 'Location', 'southeast');
 grid on
 
 subplot(1,2,2)
-plot(Vgrid, 3600*F_A, '-', 'LineWidth', 1.2); hold on
-plot(Vgrid, 3600*F_B, '-', 'LineWidth', 1.2);
-plot(Vgrid, 3600*F_C, '-', 'LineWidth', 1.2);
+plot(Vgrid, 3600*nA, '-', 'LineWidth', 1.2); hold on
+plot(Vgrid, 3600*nB, '-', 'LineWidth', 1.2);
+plot(Vgrid, 3600*nC, '-', 'LineWidth', 1.2);
 xlabel('Reactor volume V [m^3]'); ylabel('Molar flow [kmol/h]');
 title('Molar flow profiles');
-legend('EB (F_A)', 'St (F_B)', 'Bz (F_C)', 'Location', 'east');
+legend('EB (n_A)', 'ST (n_B)', 'BZ (n_C)', 'Location', 'east');
 grid on
 
 %% ========================================================================

@@ -9,30 +9,30 @@ NOTATION (as in the slides and in the MATLAB version)
     A = ethylbenzene (EB), B = styrene (ST), C = benzene (BZ)
         R1:  A -> B + H2          rate constant k1(T), endothermic
         R2:  A -> C + C2H4        rate constant k2(T), endothermic
-    X_A = (F_A0 - F_A)/F_A0 is the conversion of A.
+    X_A = (nA0 - nA)/nA0 is the conversion of A.
 
 PROBLEM (3.2): a system of two nonlinear ODEs (initial value problem)
     System's state:  x = [X_A, T]^T
         dx/dV = f(x),   x = x0 = [0, T0]  @  V = 0
     with
-    f1(X_A,T) = (k1(T) + k2(T)) * (1 - X_A) / ( Q0*(1 + epsA*X_A)*T/T0 )
+    f1(X_A,T) = (k1(T) + k2(T)) * (1 - X_A) / ( Vdot0*(1 + epsA*X_A)*T/T0 )
     f2(X_A,T) = { [(-dHr1)*k1(T) + (-dHr2)*k2(T)]*C_A(X_A,T)
-                  - Ua_v*(T - Ta) } / ( F_tot(X_A)*cp )
-    C_A(X_A,T) = F_A0*(1 - X_A) / ( Q0*(1 + epsA*X_A)*T/T0 )
-    F_tot(X_A) = F_tot0*(1 + epsA*X_A)
+                  - UaV*(T - Tc) } / ( ndot(X_A)*Cp )
+    C_A(X_A,T) = nA0*(1 - X_A) / ( Vdot0*(1 + epsA*X_A)*T/T0 )
+    ndot(X_A) = n0*(1 + epsA*X_A)
 
     Compared with Example 3.1:
     - k1 and k2 are now FUNCTIONS of T (Arrhenius): the temperature couples
       the two equations;
-    - the volumetric flow Q = Q0*(1 + epsA*X_A)*T/T0 contains the factor T/T0
+    - the volumetric flow Vdot = Vdot0*(1 + epsA*X_A)*T/T0 contains the factor T/T0
       (ideal gas at constant pressure), which was identically 1 in the
       isothermal case. T therefore enters the mass balance TWICE: through the
       kinetics and through the gas expansion.
 
 WHAT THIS SCRIPT DOES
     1) Solves (3.2) with the classical RK4 method, fixed step, for two cases:
-       adiabatic (Ua_v = 0) and with heat exchange (Ua_v > 0).
-    2) Recovers the styrene flow F_B by integrating dF_B/dV = k1(T)*C_A along
+       adiabatic (UaV = 0) and with heat exchange (UaV > 0).
+    2) Recovers the styrene flow nB by integrating dnB/dV = k1(T)*C_A along
        the computed profile. (Unlike Example 3.1, the selectivity is NOT
        constant here, because k1/(k1+k2) depends on T.)
     3) Stiffness check: eigenvalues of the Jacobian of f along the adiabatic
@@ -45,8 +45,8 @@ HOW TO RUN
 
 UNITS (important for the energy balance)
     Rate constants in 1/s, volumes in m^3, molar flows in kmol/s, enthalpies
-    in kJ/kmol, cp in kJ/(kmol K), Ua_v in kW/(m^3 K). Then every term in the
-    numerator of f2 is in kW/m^3, the denominator F_tot*cp is in kW/K, and
+    in kJ/kmol, Cp in kJ/(kmol K), UaV in kW/(m^3 K). Then every term in the
+    numerator of f2 is in kW/m^3, the denominator ndot*Cp is in kW/K, and
     dT/dV is in K/m^3 as it should be. The feed flows of Sec. 1.6 are given
     in kmol/h: divide by 3600.
 
@@ -136,29 +136,29 @@ def k2(T):
 
 
 # --- Operating conditions (Sec. 1.6) ---
-T0     = 900.0         # feed temperature (also the T at which Q0 is given) [K]
-P      = 1e5           # pressure (isobaric reactor)                  [Pa]
-F_A0   = 1/3600        # inlet molar flow of A (EB),  1 kmol/h        [kmol/s]
-F_W0   = 9/3600        # inlet molar flow of steam,   9 kmol/h        [kmol/s]
-F_tot0 = F_A0 + F_W0   # total inlet molar flow                       [kmol/s]
-y_A0   = F_A0/F_tot0   # mole fraction of A in the feed (0.10)        [-]
+T0     = 900.0         # feed temperature (also the T at which Vdot0 is given) [K]
+p      = 1e5           # pressure (isobaric reactor)                  [Pa]
+nA0   = 1/3600        # inlet molar flow of A (EB),  1 kmol/h        [kmol/s]
+nW0   = 9/3600        # inlet molar flow of steam,   9 kmol/h        [kmol/s]
+n0 = nA0 + nW0   # total inlet molar flow                       [kmol/s]
+y_A0   = nA0/n0   # mole fraction of A in the feed (0.10)        [-]
 epsA   = y_A0*1        # expansion factor (delta_nu = +1 per mole of A) [-]
-Q0     = F_tot0*1e3*R*T0/P   # inlet volumetric flow, ideal gas       [m^3/s]
+Vdot0     = n0*1e3*R*T0/p   # inlet volumetric flow, ideal gas       [m^3/s]
                              # (1e3: kmol -> mol, with R in J/(mol K))
 
 # --- Thermal parameters ---
-cp   = 58.0            # molar heat capacity of the (steam-rich) mixture [kJ/(kmol K)]
+Cp   = 58.0            # molar heat capacity of the (steam-rich) mixture [kJ/(kmol K)]
 dHr1 = 124e3           # reaction enthalpy, R1 (> 0, endothermic)     [kJ/kmol]
 dHr2 = 105e3           # reaction enthalpy, R2 (> 0, endothermic)     [kJ/kmol]
-# Declared simplifications: cp constant (feed composition), reaction
+# Declared simplifications: Cp constant (feed composition), reaction
 # enthalpies independent of T, pressure drop neglected.
 
 # --- Heat exchange: the two cases ---
-# Ua_v is a VOLUMETRIC heat-transfer coefficient [kW/(m^3 K)]: a jacketed
+# UaV is a VOLUMETRIC heat-transfer coefficient [kW/(m^3 K)]: a jacketed
 # tube exchanges heat continuously along its length, so the exchange term is
 # written per unit reactor volume.
-Uav_adiab, Ta_adiab = 0.0, T0          # case 1: adiabatic (Ta irrelevant)
-Uav_heat,  Ta_heat  = 2.0, 1000.0      # case 2: heated jacket, Ta > T0
+UaV_adiab, Tc_adiab = 0.0, T0          # case 1: adiabatic (Tc irrelevant)
+UaV_heat,  Tc_heat  = 2.0, 1000.0      # case 2: heated jacket, Tc > T0
 
 # --- Numerical settings ---
 V_end = 0.30                     # reactor volume to integrate over    [m^3]
@@ -173,45 +173,45 @@ x0    = np.array([0.0, T0])      # initial state: X_A = 0 and T = T0 @ V = 0
 # parameter values when defined; Python functions read the parameters when
 # they are CALLED.)
 
-def Q_fun(X_A, T):
+def Vdot_fun(X_A, T):
     """Local volumetric flow: expands with composition AND temperature."""
-    return Q0*(1 + epsA*X_A)*(T/T0)                         # [m^3/s]
+    return Vdot0*(1 + epsA*X_A)*(T/T0)                         # [m^3/s]
 
 
 def CA_fun(X_A, T):
     """Local concentration of A."""
-    return F_A0*(1 - X_A)/Q_fun(X_A, T)                     # [kmol/m^3]
+    return nA0*(1 - X_A)/Vdot_fun(X_A, T)                     # [kmol/m^3]
 
 
-def Ftot_fun(X_A):
+def ndot_fun(X_A):
     """Total molar flow: increases with conversion (1 mole A -> 2 moles)."""
-    return F_tot0*(1 + epsA*X_A)                            # [kmol/s]
+    return n0*(1 + epsA*X_A)                            # [kmol/s]
 
 
 def f1(X_A, T):
     """Mass balance on A written for X_A.
-    From dF_A/dV = -(k1 + k2)*C_A with dF_A = -F_A0*dX_A:
-      dX_A/dV = (k1 + k2)*C_A/F_A0 = (k1 + k2)*(1 - X_A)/(Q0*(1+epsA*X_A)*T/T0)"""
-    return (k1(T) + k2(T))*CA_fun(X_A, T)/F_A0              # [1/m^3]
+    From dnA/dV = -(k1 + k2)*C_A with dnA = -nA0*dX_A:
+      dX_A/dV = (k1 + k2)*C_A/nA0 = (k1 + k2)*(1 - X_A)/(Vdot0*(1+epsA*X_A)*T/T0)"""
+    return (k1(T) + k2(T))*CA_fun(X_A, T)/nA0              # [1/m^3]
 
 
-def f2(X_A, T, Uav, Ta):
+def f2(X_A, T, UaV, Tc):
     """Energy balance. Numerator: heat "generated" by the reactions per unit
     volume (NEGATIVE, both reactions are endothermic: they consume heat) plus
-    heat received from the jacket (positive if Ta > T). Denominator: heat
-    capacity flow of the gas mixture. Ua_v and Ta are ARGUMENTS, so the same
+    heat received from the jacket (positive if Tc > T). Denominator: heat
+    capacity flow of the gas mixture. UaV and Tc are ARGUMENTS, so the same
     f2 serves both cases."""
     return (((-dHr1)*k1(T) + (-dHr2)*k2(T))*CA_fun(X_A, T)
-            - Uav*(T - Ta))/(Ftot_fun(X_A)*cp)              # [K/m^3]
+            - UaV*(T - Tc))/(ndot_fun(X_A)*Cp)              # [K/m^3]
 
 
-def f(V, x, Uav, Ta):
+def f(V, x, UaV, Tc):
     """f(x): packs f1 and f2 into the array expected by the solver, mapping the
     physical notation (X_A, T) onto the state x = [x[0], x[1]]. V is kept as
     first argument (standard ODE-solver signature), although the system is
     autonomous."""
     return np.array([f1(x[0], x[1]),
-                     f2(x[0], x[1], Uav, Ta)])
+                     f2(x[0], x[1], UaV, Tc)])
 
 
 # =============================================================================
@@ -219,38 +219,38 @@ def f(V, x, Uav, Ta):
 # =============================================================================
 # rk4_fixed expects f(V, x): the case-specific parameters are fixed by
 # wrapping f in a new (lambda) function of (V, x) only.
-Vgrid, Xad = rk4_fixed(lambda V, x: f(V, x, Uav_adiab, Ta_adiab), 0.0, V_end, x0, h)
-_,     Xht = rk4_fixed(lambda V, x: f(V, x, Uav_heat,  Ta_heat),  0.0, V_end, x0, h)
+Vgrid, Xad = rk4_fixed(lambda V, x: f(V, x, UaV_adiab, Tc_adiab), 0.0, V_end, x0, h)
+_,     Xht = rk4_fixed(lambda V, x: f(V, x, UaV_heat,  Tc_heat),  0.0, V_end, x0, h)
 # Each solution has one ROW per grid point: column 0 = X_A, column 1 = T.
 
-# --- Styrene flow F_B along the reactor (post-processing) ---
-# Mass balance on B: dF_B/dV = k1(T)*C_A(X_A,T). The right-hand side is known
-# at every grid point once X_A(V) and T(V) are known, so F_B follows by
-# numerical QUADRATURE (cumulative trapezoidal rule), with F_B = 0 at V = 0.
+# --- Styrene flow nB along the reactor (post-processing) ---
+# Mass balance on B: dnB/dV = k1(T)*C_A(X_A,T). The right-hand side is known
+# at every grid point once X_A(V) and T(V) are known, so nB follows by
+# numerical QUADRATURE (cumulative trapezoidal rule), with nB = 0 at V = 0.
 # With h = 0.001 m^3 the quadrature error is negligible.
-# (In Example 3.1 the ratio dF_B/dF_A = -k1/(k1+k2) was constant; here it
-# depends on T, so F_B cannot be obtained algebraically from X_A.)
+# (In Example 3.1 the ratio dnB/dnA = -k1/(k1+k2) was constant; here it
+# depends on T, so nB cannot be obtained algebraically from X_A.)
 FB_ad = cumulative_trapezoid(k1(Xad[:, 1])*CA_fun(Xad[:, 0], Xad[:, 1]), Vgrid, initial=0)
 FB_ht = cumulative_trapezoid(k1(Xht[:, 1])*CA_fun(Xht[:, 0], Xht[:, 1]), Vgrid, initial=0)
 
 # Overall selectivity to styrene at the outlet: moles of B formed per mole of
 # A converted.
-S_ad = FB_ad[-1]/(F_A0*Xad[-1, 0])
-S_ht = FB_ht[-1]/(F_A0*Xht[-1, 0])
+S_ad = FB_ad[-1]/(nA0*Xad[-1, 0])
+S_ht = FB_ht[-1]/(nA0*Xht[-1, 0])
 
 # --- Isothermal reference (Example 3.1): analytical solution at V_end ---
-# -epsA*X - (1 + epsA)*ln(1 - X) = (k1 + k2)/Q0*V, solved by brentq
+# -epsA*X - (1 + epsA)*ln(1 - X) = (k1 + k2)/Vdot0*V, solved by brentq
 # (the Python counterpart of fzero with a bracketing interval).
 kiso  = k1(T0) + k2(T0)
-X_iso = brentq(lambda X: -epsA*X - (1 + epsA)*np.log(1 - X) - kiso/Q0*V_end, 0, 0.99)
+X_iso = brentq(lambda X: -epsA*X - (1 + epsA)*np.log(1 - X) - kiso/Vdot0*V_end, 0, 0.99)
 S_iso = k1(T0)/kiso
 
 # --- Results table ---
 print(f"Non-isothermal PFR, V = {V_end:.2f} m^3, RK4 with h = {h:.3f} m^3\n")
 print(f"{'Case':40s} {'X_A':>8s} {'T out [K]':>12s} {'Selectivity':>12s}")
 print(f"{'Isothermal (Example 3.1)':40s} {X_iso:8.3f} {T0:12.1f} {S_iso:12.3f}")
-print(f"{'Adiabatic (Ua_v = 0)':40s} {Xad[-1, 0]:8.3f} {Xad[-1, 1]:12.1f} {S_ad:12.3f}")
-print(f"{f'Heat exchange (Ua_v = {Uav_heat:g}, Ta = {Ta_heat:g} K)':40s} "
+print(f"{'Adiabatic (UaV = 0)':40s} {Xad[-1, 0]:8.3f} {Xad[-1, 1]:12.1f} {S_ad:12.3f}")
+print(f"{f'Heat exchange (UaV = {UaV_heat:g}, Tc = {Tc_heat:g} K)':40s} "
       f"{Xht[-1, 0]:8.3f} {Xht[-1, 1]:12.1f} {S_ht:12.3f}\n")
 # Physical reading: the adiabatic reactor cools down (endothermic reactions)
 # and self-limits: lower conversion, but higher selectivity. With heat
@@ -270,7 +270,7 @@ print(f"{'V':>8s} {'T [K]':>10s} {'X_A':>8s} {'lambda_1':>12s} {'lambda_2':>12s}
 for Vcheck in [0.0, 0.15, 0.30]:
     i = np.argmin(np.abs(Vgrid - Vcheck))               # closest grid point
     xi = Xad[i]
-    J = numjac_fd(lambda x: f(0.0, x, Uav_adiab, Ta_adiab), xi)
+    J = numjac_fd(lambda x: f(0.0, x, UaV_adiab, Tc_adiab), xi)
     lam = np.linalg.eigvals(J)
     ratio = np.max(np.abs(lam))/np.min(np.abs(lam))
     print(f"{Vgrid[i]:8.2f} {xi[1]:10.1f} {xi[0]:8.3f} {lam[0].real:12.4f} "
@@ -284,7 +284,7 @@ print()
 # whole reactor). If the result stays close to the fine-step solution, RK4 is
 # stable and accurate here, and no implicit method is needed.
 h_big = 0.05
-_, Xbig = rk4_fixed(lambda V, x: f(V, x, Uav_adiab, Ta_adiab), 0.0, V_end, x0, h_big)
+_, Xbig = rk4_fixed(lambda V, x: f(V, x, UaV_adiab, Tc_adiab), 0.0, V_end, x0, h_big)
 print(f"Step-size test (adiabatic): h = {h:.3f} -> X_A = {Xad[-1, 0]:.5f}, T = {Xad[-1, 1]:.3f} K")
 print(f"                            h = {h_big:.3f} -> X_A = {Xbig[-1, 0]:.5f}, T = {Xbig[-1, 1]:.3f} K\n")
 
@@ -295,7 +295,7 @@ print(f"                            h = {h_big:.3f} -> X_A = {Xbig[-1, 0]:.5f}, 
 X_iso_prof = np.zeros_like(Vgrid)
 for i in range(1, Vgrid.size):
     X_iso_prof[i] = brentq(lambda X: -epsA*X - (1 + epsA)*np.log(1 - X)
-                           - kiso/Q0*Vgrid[i], 0, 0.99)
+                           - kiso/Vdot0*Vgrid[i], 0, 0.99)
 
 fig, ax = plt.subplots(1, 2, figsize=(11, 4.5), num="Example 3.2 - Non-isothermal PFR")
 
