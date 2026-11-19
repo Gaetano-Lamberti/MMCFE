@@ -74,14 +74,14 @@ Ea2  = 207.99e3     # activation energy, R2                        [kJ/kmol]
 
 # --- Operating conditions (Sec. 1.6), same as Sections 2-3 ---
 T0     = 900.0                     # temperature, FIXED (isothermal)  [K]
-P      = 1e5                       # pressure (isobaric)              [Pa]
-F_A0   = 1/3600                    # inlet molar flow of EB, 1 kmol/h [kmol/s]
-F_W0   = 9/3600                    # inlet molar flow of steam        [kmol/s]
-F_tot0 = F_A0 + F_W0               # total inlet molar flow           [kmol/s]
-y_A0   = F_A0/F_tot0               # inlet mole fraction of EB (0.10) [-]
+p      = 1e5                       # pressure (isobaric)              [Pa]
+nA0   = 1/3600                    # inlet molar flow of EB, 1 kmol/h [kmol/s]
+nW0   = 9/3600                    # inlet molar flow of steam        [kmol/s]
+n0 = nA0 + nW0               # total inlet molar flow           [kmol/s]
+y_A0   = nA0/n0               # inlet mole fraction of EB (0.10) [-]
 epsA   = y_A0*1                    # expansion factor (delta_nu = +1) [-]
-Q0     = F_tot0*1e3*Rg*T0/P        # total inlet volumetric flow      [m^3/s]
-C_tot  = P/(1e3*Rg*T0)             # total molar concentration P/RT   [kmol/m^3]
+Vdot0     = n0*1e3*Rg*T0/p        # total inlet volumetric flow      [m^3/s]
+C_tot  = p/(1e3*Rg*T0)             # total molar concentration p/RT   [kmol/m^3]
 C_A0   = y_A0*C_tot                # inlet concentration of EB        [kmol/m^3]
 V_tot  = 0.30                      # total volume (as the PFR, Ex. 3.1) [m^3]
 
@@ -93,9 +93,9 @@ S    = k1/ksum                     # selectivity to ST, constant at fixed T [-]
 # --- Geometry of the multitubular reactor ---
 R     = 0.015                      # tube radius                      [m]
 vbar0 = 1.0                        # mean inlet velocity per tube     [m/s]
-tau   = V_tot/Q0                   # mean residence time              [s]
+tau   = V_tot/Vdot0                   # mean residence time              [s]
 L     = vbar0*tau                  # tube length                      [m]
-N_t   = Q0/(np.pi*R**2*vbar0)      # number of tubes                  [-]
+N_t   = Vdot0/(np.pi*R**2*vbar0)      # number of tubes                  [-]
 D     = 1e-4                       # diffusivity (all species)        [m^2/s]
 
 # --- Radial grid (common to ALL methods) ---
@@ -344,7 +344,7 @@ print("Notes: FTCS pays for STABILITY (the step is fixed by the near-wall nodes)
 #   H2   : Y_H2   = Y_B                 (formed with ST by R1)
 #   BZ   : Y_BZ   = (1 - S)*X_A         (R2)
 #   C2H4 : Y_C2H4 = Y_BZ                (formed with BZ by R2)
-#   W    : F_W0/F_A0 = 9                (inert)
+#   W    : nW0/nA0 = 9                (inert)
 # Total moles per mole of EB fed: 1/y_A0 + X_A (each converted EB gives
 # 2 moles). Hence the local mole fraction of species i is
 #   y_i = Y_i/(1/y_A0 + X_A) = y_A0*Y_i/(1 + epsA*X_A)
@@ -358,7 +358,7 @@ def yields(X):
     """Yields of the six species (last axis) for any array of X_A values."""
     X = np.asarray(X)
     return np.stack([1 - X, S*X, S*X, (1 - S)*X, (1 - S)*X,
-                     (F_W0/F_A0)*np.ones_like(X)], axis=-1)
+                     (nW0/nA0)*np.ones_like(X)], axis=-1)
 
 
 def concentrations(X):
@@ -369,8 +369,8 @@ def concentrations(X):
 
 # (a) CUP-MIXING (flow-averaged) concentrations along z: what a sample of the
 #     whole tube outlet at position z would contain. The flows add up linearly
-#     over the section, so F_i(z) = F_A0*Y_i,bulk(z) and
-#     C_i,cup(z) = F_i(z)/Q(z) with Q = Q0*(1 + epsA*X_bulk).
+#     over the section, so n_i(z) = nA0*Y_i,bulk(z) and
+#     C_i,cup(z) = n_i(z)/Vdot(z) with Vdot = Vdot0*(1 + epsA*X_bulk).
 C_cup = concentrations(Xb_bdf)                          # rows: z, cols: species
 # (b) LOCAL concentrations over the whole (r, z) domain
 C_loc = concentrations(X_bdf)                           # z x r x species
@@ -379,7 +379,7 @@ print("Outlet flows of the whole reactor [kmol/h] and cup-mixing concentrations 
 Y_out = yields(Xb_bdf[-1])
 for s, name in enumerate(names):
     label = name.replace("$", "").replace("_", "")
-    print(f"  {label:7s}  F = {3600*F_A0*Y_out[s]:.4f} kmol/h   "
+    print(f"  {label:7s}  n = {3600*nA0*Y_out[s]:.4f} kmol/h   "
           f"C = {1e3*C_cup[-1, s]:8.3f} mol/m^3")
 
 # =============================================================================

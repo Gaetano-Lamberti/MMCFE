@@ -17,13 +17,13 @@ NOTATION (as in the slides)
     k     = thermal conductivity of the gas       [kW/(m K)]
     alpha = thermal diffusivity                   [m^2/s]
     h_w   = wall heat-exchange coefficient        [kW/(m^2 K)]  (h_w = 0: adiabatic)
-    T_a   = service (heating) fluid temperature   [K]
+    Tc   = service (heating) fluid temperature   [K]
 
 PROBLEM (4.2): three coupled, nonlinear, PARABOLIC PDEs in (r, z)
 
     v0(r) dX_A/dz = D*Lap(X_A) + (k1(T) + k2(T)) * c(X_A,T)
     v0(r) dY_B/dz = D*Lap(Y_B) + k1(T) * c(X_A,T)
-    v0(r) dT/dz   = alpha*Lap(T) + (y_A0/cp)*[(-dHr1)*k1(T) + (-dHr2)*k2(T)] * c(X_A,T)
+    v0(r) dT/dz   = alpha*Lap(T) + (y_A0/Cp)*[(-dHr1)*k1(T) + (-dHr2)*k2(T)] * c(X_A,T)
 
     with  v0(r) = 2*vbar0*(1 - (r/R)^2),   Lap = (1/r) d/dr (r d/dr),
           c(X_A,T) = (1 - X_A)/((1 + epsA*X_A)*T/T0)
@@ -31,7 +31,7 @@ PROBLEM (4.2): three coupled, nonlinear, PARABOLIC PDEs in (r, z)
                          X_A            Y_B            T
     BC1 @ z = 0, all r : X_A = 0        Y_B = 0        T = T0
     BC2 @ r = 0, all z : dX_A/dr = 0    dY_B/dr = 0    dT/dr = 0
-    BC3 @ r = R, all z : dX_A/dr = 0    dY_B/dr = 0    -k*dT/dr = h_w*(T - T_a)
+    BC3 @ r = R, all z : dX_A/dr = 0    dY_B/dr = 0    -k*dT/dr = h_w*(T - Tc)
 
     BC3 for T is a ROBIN condition (a mix of the value and of the derivative).
 
@@ -55,7 +55,7 @@ TREATMENT OF THE WALL (strategy "a")
         du/dr|_R ~ (3*u_N - 4*u_{N-1} + u_{N-2}) / (2*dr)
     which gives the wall value in closed form (see wall_values below):
         X_A, Y_B :  u_N = (4*u_{N-1} - u_{N-2})/3
-        T        :  T_N = [ k*(4*T_{N-1} - T_{N-2})/(2*dr) + h_w*T_a ]
+        T        :  T_N = [ k*(4*T_{N-1} - T_{N-2})/(2*dr) + h_w*Tc ]
                           / [ 3*k/(2*dr) + h_w ]
     Only the nodes with v0 > 0 (axis ... last node before the wall) are
     marched in z.
@@ -65,7 +65,7 @@ HOW TO RUN
 
 UNITS
     Lengths in m, velocities in m/s, D and alpha in m^2/s, rate constants in
-    1/s, enthalpies in kJ/kmol, cp in kJ/(kmol K), k in kW/(m K), h_w in
+    1/s, enthalpies in kJ/kmol, Cp in kJ/(kmol K), k in kW/(m K), h_w in
     kW/(m^2 K), molar flows in kmol/s, concentrations in kmol/m^3.
 
 INDEXING NOTE
@@ -100,42 +100,42 @@ def k2(T):
 
 
 # --- Thermal parameters (Sec. 2.2) ---
-cp   = 58.0          # molar heat capacity of the feed mixture       [kJ/(kmol K)]
+Cp   = 58.0          # molar heat capacity of the feed mixture       [kJ/(kmol K)]
 dHr1 = 124e3         # reaction enthalpy, R1 (> 0: endothermic)      [kJ/kmol]
 dHr2 = 105e3         # reaction enthalpy, R2 (> 0: endothermic)      [kJ/kmol]
 
 # --- Operating conditions (Sec. 1.6), same as Sections 2-3 ---
 T0     = 900.0                    # feed temperature                 [K]
-P      = 1e5                      # pressure (isobaric)              [Pa]
-F_A0   = 1/3600                   # inlet molar flow of EB, 1 kmol/h [kmol/s]
-F_W0   = 9/3600                   # inlet molar flow of steam        [kmol/s]
-F_tot0 = F_A0 + F_W0              # total inlet molar flow           [kmol/s]
-y_A0   = F_A0/F_tot0              # inlet mole fraction of EB (0.10) [-]
+p      = 1e5                      # pressure (isobaric)              [Pa]
+nA0   = 1/3600                   # inlet molar flow of EB, 1 kmol/h [kmol/s]
+nW0   = 9/3600                   # inlet molar flow of steam        [kmol/s]
+n0 = nA0 + nW0              # total inlet molar flow           [kmol/s]
+y_A0   = nA0/n0              # inlet mole fraction of EB (0.10) [-]
 epsA   = y_A0*1                   # expansion factor (delta_nu = +1) [-]
-Q0     = F_tot0*1e3*Rg*T0/P       # total inlet volumetric flow      [m^3/s]
-C_tot0 = P/(1e3*Rg*T0)            # inlet total concentration P/RT0  [kmol/m^3]
+Vdot0     = n0*1e3*Rg*T0/p       # total inlet volumetric flow      [m^3/s]
+C_tot0 = p/(1e3*Rg*T0)            # inlet total concentration p/RT0  [kmol/m^3]
 C_A0   = y_A0*C_tot0              # inlet concentration of EB        [kmol/m^3]
 V_tot  = 0.30                     # total volume (as the PFR, Sec. 3) [m^3]
 
 # --- Geometry of the multitubular reactor ---
 R     = 0.015                     # tube radius                      [m]
 vbar0 = 1.0                       # mean inlet velocity per tube     [m/s]
-tau   = V_tot/Q0                  # mean residence time              [s]
+tau   = V_tot/Vdot0                  # mean residence time              [s]
 L     = vbar0*tau                 # tube length                      [m]
-N_t   = Q0/(np.pi*R**2*vbar0)     # number of tubes                  [-]
+N_t   = Vdot0/(np.pi*R**2*vbar0)     # number of tubes                  [-]
 
 # --- Transport properties ---
 D      = 1e-4                     # mass diffusivity (all species)   [m^2/s]
 alpha  = D                        # thermal diffusivity: Lewis number = 1 (stated
                                   # approximation, Sec. 4.4 of the document)
-k_cond = alpha*C_tot0*cp          # thermal conductivity k = alpha*C_tot0*cp [kW/(m K)]
+k_cond = alpha*C_tot0*Cp          # thermal conductivity k = alpha*C_tot0*Cp [kW/(m K)]
                                   # (~0.078 W/(m K), close to steam at 900 K)
 
 # --- The two cases: adiabatic and heated wall ---
 # h_w is chosen so that 2*h_w/R = 2 kW/(m^3 K): the SAME volumetric
-# coefficient Ua_v used for the PFR of Section 3.2.
-cases = [dict(name="Adiabatic wall", h_w=0.0,   T_a=T0),
-         dict(name="Heated wall",    h_w=0.015, T_a=1000.0)]   # [kW/(m^2 K)], [K]
+# coefficient UaV used for the PFR of Section 3.2.
+cases = [dict(name="Adiabatic wall", h_w=0.0,   Tc=T0),
+         dict(name="Heated wall",    h_w=0.015, Tc=1000.0)]   # [kW/(m^2 K)], [K]
 
 # --- Radial grid (common to both methods) ---
 N_r = 40                          # number of radial INTERVALS
@@ -159,18 +159,18 @@ def cfac(X, T):
     return (1 - X)/((1 + epsA*X)*(T/T0))
 
 
-def wall_values(X, Y, T, h_w, T_a):
+def wall_values(X, Y, T, h_w, Tc):
     """Wall values from BC3 with a one-sided, second-order difference
         du/dr|_R ~ (3*u_N - 4*u_{N-1} + u_{N-2})/(2*dr)
     X_A, Y_B: du/dr = 0            ->  u_N = (4*u_{N-1} - u_{N-2})/3
-    T: -k*dT/dr = h_w*(T_N - T_a)  ->  T_N = [k*(4*T_{N-1} - T_{N-2})/(2*dr) + h_w*T_a]
+    T: -k*dT/dr = h_w*(T_N - Tc)  ->  T_N = [k*(4*T_{N-1} - T_{N-2})/(2*dr) + h_w*Tc]
                                              / [3*k/(2*dr) + h_w]
     X, Y, T: values at the marched nodes (last axis); the last two entries are
     the two nodes before the wall. Works on 1-D and 2-D arrays."""
     a  = k_cond/(2*dr)
     Xw = (4*X[..., -1] - X[..., -2])/3
     Yw = (4*Y[..., -1] - Y[..., -2])/3
-    Tw = (a*(4*T[..., -1] - T[..., -2]) + h_w*T_a)/(3*a + h_w)
+    Tw = (a*(4*T[..., -1] - T[..., -2]) + h_w*Tc)/(3*a + h_w)
     return Xw, Yw, Tw
 
 
@@ -186,13 +186,13 @@ def lap_fd(u):
     return Lu
 
 
-def rhs_ltr(z, U, h_w, T_a):
+def rhs_ltr(z, U, h_w, Tc):
     """dU/dz for the marched nodes (method of lines), U = [X_A; Y_B; T]:
         v0_i dX_i/dz = D*(Lap X)_i     + (k1+k2)*c
         v0_i dY_i/dz = D*(Lap Y)_i     + k1*c
-        v0_i dT_i/dz = alpha*(Lap T)_i + (y_A0/cp)*[(-dHr1)k1 + (-dHr2)k2]*c"""
+        v0_i dT_i/dz = alpha*(Lap T)_i + (y_A0/Cp)*[(-dHr1)k1 + (-dHr2)k2]*c"""
     X, Y, T = U[:n], U[n:2*n], U[2*n:]
-    Xw, Yw, Tw = wall_values(X, Y, T, h_w, T_a)          # BC3 (slaved wall)
+    Xw, Yw, Tw = wall_values(X, Y, T, h_w, Tc)          # BC3 (slaved wall)
     LX = lap_fd(np.append(X, Xw))
     LY = lap_fd(np.append(Y, Yw))
     LT = lap_fd(np.append(T, Tw))
@@ -200,17 +200,17 @@ def rhs_ltr(z, U, h_w, T_a):
     a1, a2 = k1(T), k2(T)
     sX = (a1 + a2)*c
     sY = a1*c
-    sT = (y_A0/cp)*(-dHr1*a1 - dHr2*a2)*c
+    sT = (y_A0/Cp)*(-dHr1*a1 - dHr2*a2)*c
     v  = v0[:n]
     return np.concatenate([(D*LX + sX)/v, (D*LY + sY)/v, (alpha*LT + sT)/v])
 
 
-def full_fields(U, h_w, T_a):
+def full_fields(U, h_w, Tc):
     """From the marched unknowns (one ROW per z) to the full fields on all
     N_r+1 nodes, appending the wall values given by BC3."""
     U = np.atleast_2d(U)
     X, Y, T = U[:, :n], U[:, n:2*n], U[:, 2*n:]
-    Xw, Yw, Tw = wall_values(X, Y, T, h_w, T_a)
+    Xw, Yw, Tw = wall_values(X, Y, T, h_w, Tc)
     return (np.column_stack([X, Xw]), np.column_stack([Y, Yw]),
             np.column_stack([T, Tw]))
 
@@ -263,8 +263,8 @@ tri = sp.diags([np.ones(n - 1), np.ones(n), np.ones(n - 1)], [-1, 0, 1])
 jac_pattern = sp.kron(np.ones((3, 3)), tri)
 
 for case in cases:
-    h_w, T_a = case["h_w"], case["T_a"]
-    f = lambda zz, U: rhs_ltr(zz, U, h_w, T_a)       # dU/dz = f(U)
+    h_w, Tc = case["h_w"], case["Tc"]
+    f = lambda zz, U: rhs_ltr(zz, U, h_w, Tc)       # dU/dz = f(U)
 
     # --- 2a) BDF (solve_ivp): reference solution ---
     # first_step: small, because at z = 0 the wall temperature jumps to its
@@ -276,7 +276,7 @@ for case in cases:
     case["nsteps_bdf"] = sol_steps.t.size - 1
     sol = solve_ivp(f, (0.0, L), U0, t_eval=z, **bdf_opts)      # on the output grid
     case["t_bdf"] = time.perf_counter() - t0
-    case["X"], case["Y"], case["T"] = full_fields(sol.y.T, h_w, T_a)
+    case["X"], case["Y"], case["T"] = full_fields(sol.y.T, h_w, Tc)
 
     # --- 2b) FTCS: explicit Euler in z ---
     # Stability limit dz <= 2/|lambda|_max, with lambda the eigenvalues of the
@@ -289,22 +289,22 @@ for case in cases:
     t0 = time.perf_counter()
     U_end, case["ftcs_ok"] = march_ftcs(f, U0, case["nz_ftcs"])
     case["t_ftcs"] = time.perf_counter() - t0
-    Xf, Yf, Tf = full_fields(U_end, h_w, T_a)
+    Xf, Yf, Tf = full_fields(U_end, h_w, Tc)
     case["ftcs"] = (bulk_average(Xf)[0], bulk_average(Tf)[0],
                     bulk_average(Yf)[0]/bulk_average(Xf)[0])
 
     # --- 2c) plug-flow limit (radial diffusion -> infinity) ---
     # Averaging the three PDEs over the cross-section with a flat profile gives
-    # the 1-D PFR model of Section 3.2, with Ua_v = 2*h_w/R:
+    # the 1-D PFR model of Section 3.2, with UaV = 2*h_w/R:
     #   vbar0*dX/dz = (k1+k2)*c,   vbar0*dY/dz = k1*c,
-    #   vbar0*dT/dz = (y_A0/cp)*[..]*c + (2*h_w/R)*(T_a - T)/(C_tot0*cp)
+    #   vbar0*dT/dz = (y_A0/Cp)*[..]*c + (2*h_w/R)*(Tc - T)/(C_tot0*Cp)
     def f_pfr(zz, u):
         X, Y, T = u
         c = cfac(X, T)
         return np.array([(k1(T) + k2(T))*c,
                          k1(T)*c,
-                         (y_A0/cp)*(-dHr1*k1(T) - dHr2*k2(T))*c
-                         + (2*h_w/R)*(T_a - T)/(C_tot0*cp)])/vbar0
+                         (y_A0/Cp)*(-dHr1*k1(T) - dHr2*k2(T))*c
+                         + (2*h_w/R)*(Tc - T)/(C_tot0*Cp)])/vbar0
     up = solve_ivp(f_pfr, (0.0, L), [0.0, 0.0, T0], method="BDF",
                    rtol=1e-10, atol=1e-12).y[:, -1]
     case["pfr"] = (up[0], up[2], up[1]/up[0])
@@ -315,7 +315,7 @@ for case in cases:
 for case in cases:
     Xb, Tb, Yb = bulk_average(case["X"]), bulk_average(case["T"]), bulk_average(case["Y"])
     case["Xb"], case["Tb"], case["Yb"] = Xb, Tb, Yb
-    print(f"{case['name']} (h_w = {1e3*case['h_w']:.0f} W/(m^2 K), T_a = {case['T_a']:.0f} K)")
+    print(f"{case['name']} (h_w = {1e3*case['h_w']:.0f} W/(m^2 K), Tc = {case['Tc']:.0f} K)")
     print(f"  {'Method':32s} {'z-steps':>9s} {'X_bulk':>10s} {'T_bulk [K]':>12s} {'S':>10s}")
     print(f"  {'BDF, solve_ivp (reference)':32s} {case['nsteps_bdf']:9d} {Xb[-1]:10.4f} "
           f"{Tb[-1]:12.2f} {Yb[-1]/Xb[-1]:10.4f}")
@@ -335,7 +335,7 @@ for case in cases:
 # =============================================================================
 # Local yields (stoichiometry, equal diffusivities):
 #   EB: Y_A = 1 - X_A;  ST: Y_B;  H2: Y_H2 = Y_B;
-#   BZ: Y_BZ = X_A - Y_B;  C2H4: Y_C2H4 = Y_BZ;  W: Y_W = F_W0/F_A0 = 9
+#   BZ: Y_BZ = X_A - Y_B;  C2H4: Y_C2H4 = Y_BZ;  W: Y_W = nW0/nA0 = 9
 # Local concentrations (slide 28):  C_i = C_A0*Y_i/((1 + epsA*X_A)*T/T0)
 # CUP-MIXING concentration at position z (what a sample of the whole tube
 # outlet at z would contain) = molar flow / volumetric flow:
@@ -346,14 +346,14 @@ names = ["EB", "ST", "H$_2$", "BZ", "C$_2$H$_4$", "W"]
 w = v0*r                                             # weights v0*r
 for case in cases:
     X, Y, T = case["X"], case["Y"], case["T"]
-    Yi = np.stack([1 - X, Y, Y, X - Y, X - Y, (F_W0/F_A0)*np.ones_like(X)], axis=-1)
+    Yi = np.stack([1 - X, Y, Y, X - Y, X - Y, (nW0/nA0)*np.ones_like(X)], axis=-1)
     den = trapezoid(w*(1 + epsA*X)*(T/T0), r, axis=1)            # int v_z r dr
     case["C_cup"] = C_A0*trapezoid(w[None, :, None]*Yi, r, axis=1)/den[:, None]
     Yb_out = trapezoid(w[:, None]*Yi[-1], r, axis=0)/trapezoid(w, r)   # bulk yields
     print(f"{case['name']}: outlet flows [kmol/h] and cup-mixing concentrations [mol/m^3]")
     for s, name in enumerate(names):
         label = name.replace("$", "").replace("_", "")
-        print(f"  {label:6s} F = {3600*F_A0*Yb_out[s]:.4f} kmol/h   "
+        print(f"  {label:6s} n = {3600*nA0*Yb_out[s]:.4f} kmol/h   "
               f"C = {1e3*case['C_cup'][-1, s]:8.3f} mol/m^3")
     print()
 

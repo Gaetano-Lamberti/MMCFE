@@ -69,14 +69,14 @@ Ea2  = 207.99e3;       % activation energy, R2                       [kJ/kmol]
 
 %% --- Operating conditions (Sec. 1.6), same as Sections 2-3 ---
 T0     = 900;          % temperature, FIXED (isothermal)             [K]
-P      = 1e5;          % pressure (isobaric)                         [Pa]
-F_A0   = 1/3600;       % inlet molar flow of EB,     1 kmol/h        [kmol/s]
-F_W0   = 9/3600;       % inlet molar flow of steam,  9 kmol/h        [kmol/s]
-F_tot0 = F_A0 + F_W0;  % total inlet molar flow                      [kmol/s]
-y_A0   = F_A0/F_tot0;  % inlet mole fraction of EB (0.10)            [-]
+p      = 1e5;          % pressure (isobaric)                         [Pa]
+nA0   = 1/3600;       % inlet molar flow of EB,     1 kmol/h        [kmol/s]
+nW0   = 9/3600;       % inlet molar flow of steam,  9 kmol/h        [kmol/s]
+n0 = nA0 + nW0;  % total inlet molar flow                      [kmol/s]
+y_A0   = nA0/n0;  % inlet mole fraction of EB (0.10)            [-]
 epsA   = y_A0*1;       % expansion factor (delta_nu = +1)            [-]
-Q0     = F_tot0*1e3*Rg*T0/P;   % total inlet volumetric flow (0.208) [m^3/s]
-C_tot  = P/(1e3*Rg*T0);        % total molar concentration (P/RT)    [kmol/m^3]
+Vdot0     = n0*1e3*Rg*T0/p;   % total inlet volumetric flow (0.208) [m^3/s]
+C_tot  = p/(1e3*Rg*T0);        % total molar concentration (p/RT)    [kmol/m^3]
 C_A0   = y_A0*C_tot;           % inlet concentration of EB           [kmol/m^3]
 V_tot  = 0.30;                 % total volume (as the PFR of Ex. 3.1) [m^3]
 
@@ -88,9 +88,9 @@ S    = k1/ksum;                % selectivity to ST, constant at fixed T [-]
 %% --- Geometry of the multitubular reactor ---
 R     = 0.015;                 % tube radius                         [m]
 vbar0 = 1.0;                   % mean inlet velocity per tube        [m/s]
-tau   = V_tot/Q0;              % mean residence time                 [s]
+tau   = V_tot/Vdot0;              % mean residence time                 [s]
 L     = vbar0*tau;             % tube length                         [m]
-N_t   = Q0/(pi*R^2*vbar0);     % number of tubes                     [-]
+N_t   = Vdot0/(pi*R^2*vbar0);     % number of tubes                     [-]
 D     = 1e-4;                  % diffusivity (all species)           [m^2/s]
 
 %% --- Radial grid (common to ALL methods) ---
@@ -264,7 +264,7 @@ fprintf(['Notes: FTCS pays for STABILITY (the step is fixed by the near-wall nod
 %   H2   : Y_H2   = Y_B                    (formed with ST by R1)
 %   BZ   : Y_BZ   = (1 - S)*X_A            (R2)
 %   C2H4 : Y_C2H4 = Y_BZ                   (formed with BZ by R2)
-%   W    : F_W0/F_A0 = 9                   (inert)
+%   W    : nW0/nA0 = 9                   (inert)
 % Total moles per mole of EB fed: 1/y_A0 + X_A  (each converted EB gives
 % 2 moles). Hence the local mole fraction of i is
 %   y_i = Y_i/(1/y_A0 + X_A) = y_A0*Y_i/(1 + epsA*X_A)
@@ -272,13 +272,13 @@ fprintf(['Notes: FTCS pays for STABILITY (the step is fixed by the near-wall nod
 %   C_i = y_i*C_tot = C_A0*Y_i/(1 + epsA*X_A)
 % (for EB this is the familiar C_A = C_A0*(1 - X_A)/(1 + epsA*X_A)).
 names = {'EB', 'ST', 'H_2', 'BZ', 'C_2H_4', 'W'};
-yieldfun = @(X) cat(3, 1 - X, S*X, S*X, (1 - S)*X, (1 - S)*X, (F_W0/F_A0)*ones(size(X)));
+yieldfun = @(X) cat(3, 1 - X, S*X, S*X, (1 - S)*X, (1 - S)*X, (nW0/nA0)*ones(size(X)));
 conc_of  = @(X) C_A0*yieldfun(X)./(1 + epsA*X);   % local C_i (3rd dim = species)
 
 % (a) CUP-MIXING (flow-averaged) concentrations along z: what a sample of
 %     the whole tube outlet at position z would contain. They follow from
 %     the bulk conversion, since the flows add up linearly over the section:
-%     F_i(z) = F_A0*Y_i,bulk(z),  C_i,cup(z) = F_i(z)/Q(z), Q = Q0*(1+epsA*X_bulk).
+%     n_i(z) = nA0*Y_i,bulk(z),  C_i,cup(z) = n_i(z)/Vdot(z), Vdot = Vdot0*(1+epsA*X_bulk).
 C_cup = squeeze(conc_of(Xb_ode));                 % rows: z, cols: species
 
 % (b) LOCAL concentrations over the whole (r, z) domain
@@ -288,8 +288,8 @@ C_loc = conc_of(X_ode);                           % z x r x species
 fprintf('Outlet flows of the whole reactor [kmol/h] and cup-mixing concentrations [mol/m^3]\n');
 Yout = squeeze(yieldfun(Xb_ode(end)));
 for s = 1:numel(names)
-    fprintf('  %-7s  F = %.4f kmol/h   C = %8.3f mol/m^3\n', ...
-            strrep(names{s}, '_', ''), 3600*F_A0*Yout(s), 1e3*C_cup(end,s));
+    fprintf('  %-7s  n = %.4f kmol/h   C = %8.3f mol/m^3\n', ...
+            strrep(names{s}, '_', ''), 3600*nA0*Yout(s), 1e3*C_cup(end,s));
 end
 
 %% ========================================================================
